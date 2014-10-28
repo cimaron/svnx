@@ -27,10 +27,7 @@
 
 cmdDiff() {
 
-	if [ ! -d .svn ]; then
-		echo "svnx: warning: '.' is not a working copy"
-		exit
-	fi
+	checkRepo
 
 	if [ -f "$1" ]; then
 		svn diff --diff-cmd diff -x -uw "$1" | less
@@ -87,7 +84,7 @@ cmdHelp() {
 			echo ""
 			echo "Valid options:"
 			echo "  -r    : reset staging area"
-			echo "  -a    : add all modified files to staging area"
+			echo "  -m    : add all modified files to staging area"
 			echo "  -e    : edit staging area in editor"
 			;;
 
@@ -105,43 +102,70 @@ cmdHelp() {
 
 cmdStage() {
 
-	if [ ! -d .svn ]; then
-		echo "svnx: warning: '.' is not a working copy"
-		exit
-	fi
+	checkRepo
 
 	local OPTIND FLAG cmd
 	
+	#Interactive editing
 	if [ "$#" = "0" ]; then
 		nano .svn/svnxstage
 		echo "Staging area updated."
-	else
-
-		while getopts ":era" FLAG
-		do
-			#echo $FLAG
-			case "$FLAG" in
-				a)
-					svn status | grep -v '^\?' | sed -e 's/^........//' > .svn/svnxstage
-					echo "Staging area updated."
-					count=`cat .svn/svnxstage | wc -l`
-					echo "$count files staged"
-					;;
-				e)
-					nano .svn/svnxstage
-					echo "Staging area updated."
-					;;
-				r)
-					if [ -f .svn/svnxstage ]; then
-						rm .svn/svnxstage
-					fi
-					echo "Staging area cleared."
-					;;
-			esac
-		done
-		shift $((OPTIND-1))
+		exit;
+	fi
 	
-	fi	
+	#Process options
+	while getopts ":erm" FLAG
+	do
+		#echo $FLAG
+		case "$FLAG" in
+			m)
+				getSvnModFiles
+				echo "$SVNFILES" > .svn/svnxstage
+				while read -r line; do
+					svn status "$line"
+				done <<< "$SVNFILES"
+				;;
+			e)
+				nano .svn/svnxstage
+				echo "Staging area updated."
+				;;
+			r)
+				if [ -f .svn/svnxstage ]; then
+					rm .svn/svnxstage
+				fi
+				echo "Staging area cleared."
+				;;
+		esac
+	done
+	shift $((OPTIND-1))
+
+	#Stage file
+	if [ -f "$1" ]; then
+		getSvnModFiles
+		while read -r line; do
+			if [ "$line" = "$1" ]; then
+				echo "File staged:"
+				echo "$line" >> .svn/svnxstage
+				svn status "$line"
+				exit;
+			fi
+		done <<< "$SVNFILES"
+	fi
+
+	#Stage file deletion
+	if [ ! -f "$1" ]; then
+		getSvnDelFiles
+		while read -r line; do
+			if [ "$line" = "$1" ]; then
+				echo "File staged:"
+				echo "$line" >> .svn/svnxstage
+				svn status "$line"
+				exit;
+			fi
+		done <<< "$SVNFILES"
+	fi
+
+	exit;
 }
 
 
@@ -157,60 +181,90 @@ cmdStage() {
 ##
 cmdStatus() {
 
-	if [ ! -d .svn ]; then
-		echo "svnx: warning: '.' is not a working copy"
-		exit
-	fi
-
+	checkRepo
 
 	#Staging changes
 	echo "Changes to be committed:"
 	if [ -f  .svn/svnxstage ]; then
-		files=`cat .svn/svnxstage`
+		getStagedFiles
 		while read -r line; do
 			svn status "$line"
-		done <<< "$files"
+		done <<< "$STAGEFILES"
 	fi
+	echo ""
 
 	#Non staged changes
-	echo ""
 	echo "Changed but not updated:"
+	getSvnModFiles
 
 	if [ -f .svn/svnxstage ]; then
-		stat=`svn status | grep -v '^\?' | sed -e 's/^........//'`
 
+		getStagedFiles
 		while read -r line; do
-			
+
 			passed="0"
 			while read -r file; do
 				if [ "$line" = "$file" ]; then
 					passed="1"
 					continue
 				fi
-			done < .svn/svnxstage
+			done <<< "$STAGEFILES"
 
 			if [ "$passed" = "0" ]; then
 				svn status "$line"
 			fi
 
-		done <<< "$stat"
+		done <<< "$SVNFILES"
 	else
-		svn status | grep -v '^\?'
+		while read -r line; do
+			svn status "$line"
+		done <<< "$SVNFILES"
 	fi
-	
-	#New files
 	echo ""
+
+	#New files
 	echo "Untracked files:"
 	
-	svn status | grep '^\?'
+	getSvnNewFiles
+	while read -r line; do
+		svn status "$line"
+	done <<< "$SVNFILES"	
 }
+
+checkRepo() {
+	if [ ! -d .svn ]; then
+		echo "svnx: warning: '.' is not a working copy"
+		exit
+	fi	
+}
+
+getStagedFiles() {
+	STAGEFILES=`cat .svn/svnxstage | grep -v '^\s*$'`
+}
+
+getSvnAllFiles() {
+	SVNFILES=`svn status | sed -e 's/^........//'`
+}
+
+getSvnNewFiles() {
+	SVNFILES=`svn status | grep '^\?' | sed -e 's/^........//'`
+}
+
+getSvnModFiles() {
+	SVNFILES=`svn status | grep -v '^\?' | sed -e 's/^........//'`
+}
+
+getSvnDelFiles() {
+	SVNFILES=`svn status | grep '^D' | sed -e 's/^........//'`
+}
+
 
 
 cmd_args=("$@")
 
 
 case "$1" in
-	
+
 	diff)
 		shift
 		cmdDiff "$@"
