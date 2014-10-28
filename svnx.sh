@@ -76,10 +76,12 @@ cmdHelp() {
 
 		diff)
 			echo "diff: Display the differences between two revisions or paths."
+			echo ""
+			echo "Valid options:"
 			;;
 
 		stage)
-			echo "stage: Edit the list of files to be committed."
+			echo "stage: Edit files in staging area."
 			echo "usage: stage [PATH...]"
 			echo ""
 			echo "Valid options:"
@@ -92,6 +94,14 @@ cmdHelp() {
 			echo "status: Print the status of working copy files and directories."
 			echo "usage: status"
 			;;
+
+		unstage)
+			echo "unstage: Remove files from staging area."
+			echo "usage: unstage [PATH...]"
+			echo ""
+			echo "Valid options:"
+			;;
+
 		*)
 			echo "'$1': unknown command."
 			exit 1
@@ -232,6 +242,39 @@ cmdStatus() {
 	done <<< "$SVNFILES"	
 }
 
+
+##
+#
+# Unstage Command
+#
+# Remove files from staging area.
+# Valid Options:
+#
+##
+cmdUnstage() {
+
+	checkRepo
+
+	#Unstage file
+	if [ -f "$1" ]; then
+		getStagedFiles
+		echo "" > .svn/svnxstage
+
+		while read -r line; do
+			if [ "$line" = "$1" ]; then
+				echo "File unstaged:"
+				svn status "$line"
+			else
+				echo "$line" >> .svn/svnxstage				
+			fi
+		done <<< "$STAGEFILES"
+	fi
+
+	exit;
+}
+
+
+
 checkRepo() {
 	if [ ! -d .svn ]; then
 		echo "svnx: warning: '.' is not a working copy"
@@ -283,6 +326,11 @@ case "$1" in
 	status)
 		shift
 		cmdStatus "$@"
+		;;
+
+	unstage)
+		shift
+		cmdUnstage "$@"
 		;;
 
 	*)
