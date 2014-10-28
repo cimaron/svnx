@@ -196,29 +196,30 @@ cmdStatus() {
 	#Non staged changes
 	echo "Changed but not updated:"
 	getSvnModFiles
-
-	if [ -f .svn/svnxstage ]; then
-
-		getStagedFiles
-		while read -r line; do
-
-			passed="0"
-			while read -r file; do
-				if [ "$line" = "$file" ]; then
-					passed="1"
-					continue
+	if [ "$SVNFILES" != "" ]; then
+		if [ -f .svn/svnxstage ]; then
+	
+			getStagedFiles
+			while read -r line; do
+	
+				passed="0"
+				while read -r file; do
+					if [ "$line" = "$file" ]; then
+						passed="1"
+						continue
+					fi
+				done <<< "$STAGEFILES"
+	
+				if [ "$passed" = "0" ]; then
+					svn status "$line"
 				fi
-			done <<< "$STAGEFILES"
-
-			if [ "$passed" = "0" ]; then
+	
+			done <<< "$SVNFILES"
+		else
+			while read -r line; do
 				svn status "$line"
-			fi
-
-		done <<< "$SVNFILES"
-	else
-		while read -r line; do
-			svn status "$line"
-		done <<< "$SVNFILES"
+			done <<< "$SVNFILES"
+		fi
 	fi
 	echo ""
 
