@@ -23,6 +23,26 @@
 #
 ##
 
+##
+#
+# Commit Command
+#
+# Send files in staging area to the repository.
+#
+##
+cmdCommit() {
+
+	checkRepo
+
+	getStagedFiles
+	
+	cat .svn/svnxstage | tr '\n' ' ' | xargs svn commit "$@"
+
+	if [ "$?" = "0" ]; then
+		rm .svn/svnxstage
+	fi
+}
+
 
 
 cmdDiff() {
@@ -67,12 +87,19 @@ cmdHelp() {
 		echo "usage: svnx <subcommand> [options] [args]"
 		echo "Type 'svnx help <subcommand>' for help on a specific subcommand."
 		echo "Available subcommands:"
+		echo "    commit"
 		echo "    diff"
 		echo "    stage"
 		echo "    status"
+		echo "    unstage"
 		exit
 	else
 	case "$1" in
+
+		commit)
+			echo "commit: Send files in staging area to the repository."
+			echo "usage: commit"
+			;;
 
 		diff)
 			echo "diff: Display the differences between two revisions or paths."
@@ -308,6 +335,11 @@ cmd_args=("$@")
 
 
 case "$1" in
+
+	commit)
+		shift
+		cmdCommit "$@"
+		;;
 
 	diff)
 		shift
