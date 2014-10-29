@@ -159,7 +159,7 @@ cmdStage() {
 				getSvnModFiles
 				echo "$SVNFILES" > .svn/svnxstage
 				while read -r line; do
-					svn status "$line"
+					printSvnFile "$line"
 				done <<< "$SVNFILES"
 				;;
 			e)
@@ -177,26 +177,26 @@ cmdStage() {
 	shift $((OPTIND-1))
 
 	#Stage file
-	if [ -f "$1" ]; then
+	if [ -e "$1" ]; then
 		getSvnModFiles
 		while read -r line; do
 			if [ "$line" = "$1" ]; then
 				echo "File staged:"
 				echo "$line" >> .svn/svnxstage
-				svn status "$line"
+				printSvnFile "$line"
 				exit;
 			fi
 		done <<< "$SVNFILES"
 	fi
 
 	#Stage file deletion
-	if [ ! -f "$1" ]; then
+	if [ ! -e "$1" ]; then
 		getSvnDelFiles
 		while read -r line; do
 			if [ "$line" = "$1" ]; then
 				echo "File staged:"
 				echo "$line" >> .svn/svnxstage
-				svn status "$line"
+				printSvnFile "$line"
 				exit;
 			fi
 		done <<< "$SVNFILES"
@@ -225,7 +225,8 @@ cmdStatus() {
 	if [ -f  .svn/svnxstage ]; then
 		getStagedFiles
 		while read -r line; do
-			svn status "$line"
+			printSvnFile "$line"
+			echo ""
 		done <<< "$STAGEFILES"
 	fi
 	echo ""
@@ -248,13 +249,13 @@ cmdStatus() {
 				done <<< "$STAGEFILES"
 	
 				if [ "$passed" = "0" ]; then
-					svn status "$line"
+					printSvnFile "$line"
 				fi
 	
 			done <<< "$SVNFILES"
 		else
 			while read -r line; do
-				svn status "$line"
+				printSvnFile "$line"
 			done <<< "$SVNFILES"
 		fi
 	fi
@@ -265,7 +266,7 @@ cmdStatus() {
 	
 	getSvnNewFiles
 	while read -r line; do
-		svn status "$line"
+		printSvnFile "$line"
 	done <<< "$SVNFILES"	
 }
 
@@ -290,7 +291,7 @@ cmdUnstage() {
 		while read -r line; do
 			if [ "$line" = "$1" ]; then
 				echo "File unstaged:"
-				svn status "$line"
+				printSvnFile "$line"
 			else
 				echo "$line" >> .svn/svnxstage				
 			fi
@@ -327,6 +328,11 @@ getSvnModFiles() {
 
 getSvnDelFiles() {
 	SVNFILES=`svn status | grep '^D' | sed -e 's/^........//'`
+}
+
+printSvnFile() {
+	#Need to pipe through cat else get a broken pipe error
+	svn status "$1" | cat | head -n 1
 }
 
 
