@@ -331,8 +331,10 @@ getSvnDelFiles() {
 }
 
 printSvnFile() {
-	#Need to pipe through cat else get a broken pipe error
-	svn status "$1" | cat | head -n 1
+	if [ "$1" != "" ]; then
+		#Need to pipe through cat else get a broken pipe error
+		svn status --depth empty "$1" | cat | head -n 1
+	fi
 }
 
 
