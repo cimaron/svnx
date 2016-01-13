@@ -336,19 +336,19 @@ getStagedFiles() {
 }
 
 getSvnAllFiles() {
-	SVNFILES=`svn status | sed -e 's/^........//'`
+	SVNFILES=`svn status | sed -e 's/^........//' | sort`
 }
 
 getSvnNewFiles() {
-	SVNFILES=`svn status | grep '^\?' | sed -e 's/^........//'`
+	SVNFILES=`svn status | grep '^\?' | sed -e 's/^........//' | sort`
 }
 
 getSvnModFiles() {
-	SVNFILES=`svn status | grep -v '^\?' | sed -e 's/^........//'`
+	SVNFILES=`svn status | grep -v '^\?' | sed -e 's/^........//' | sort`
 }
 
 getSvnDelFiles() {
-	SVNFILES=`svn status | grep '^D' | sed -e 's/^........//'`
+	SVNFILES=`svn status | grep '^D' | sed -e 's/^........//' | sort`
 }
 
 printSvnFile() {
