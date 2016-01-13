@@ -65,7 +65,7 @@ cmdDiff() {
 				exit;
 				;;
 			s)
-				cat .svn/svnxstage | tr '\n' ' ' | xargs svn diff --diff-cmd diff -x -uw | less
+				cat .svn/svnxstage | tr '\n' ' ' | xargs svn diff --depth empty --diff-cmd diff -x -uw | less
 				exit;
 				;;
 			u)
