@@ -120,6 +120,11 @@ cmdHelp() {
 		status)
 			echo "status: Print the status of working copy files and directories."
 			echo "usage: status"
+			echo ""
+			echo "Valid options:"
+			echo "  -s    : show staged files only"
+			echo "  -m    : show unstaged modified files only"
+			echo "  -u    : show untracked files only"
 			;;
 
 		unstage)
@@ -220,54 +225,70 @@ cmdStatus() {
 
 	checkRepo
 
-	#Staging changes
-	echo "Changes to be committed:"
-	if [ -f  .svn/svnxstage ]; then
-		getStagedFiles
-		while read -r line; do
-			printSvnFile "$line"
-			echo ""
-		done <<< "$STAGEFILES"
-	fi
-	echo ""
+	show=""
+	#Process options
+	while getopts ":smu" FLAG
+	do
+		show="$FLAG"
+	done
+	shift $((OPTIND-1))
 
-	#Non staged changes
-	echo "Changed but not updated:"
-	getSvnModFiles
-	if [ "$SVNFILES" != "" ]; then
-		if [ -f .svn/svnxstage ]; then
-	
+	#Staging changes
+	if [ "$show" = "" ] || [ "$show" = "s" ]; then
+
+		echo "Changes to be committed:"
+		if [ -f  .svn/svnxstage ]; then
 			getStagedFiles
 			while read -r line; do
-	
-				passed="0"
-				while read -r file; do
-					if [ "$line" = "$file" ]; then
-						passed="1"
-						continue
-					fi
-				done <<< "$STAGEFILES"
-	
-				if [ "$passed" = "0" ]; then
-					printSvnFile "$line"
-				fi
-	
-			done <<< "$SVNFILES"
-		else
-			while read -r line; do
 				printSvnFile "$line"
-			done <<< "$SVNFILES"
+			done <<< "$STAGEFILES"
 		fi
+		echo ""
 	fi
-	echo ""
 
-	#New files
-	echo "Untracked files:"
 	
-	getSvnNewFiles
-	while read -r line; do
-		printSvnFile "$line"
-	done <<< "$SVNFILES"	
+	#Non staged changes
+	if [ "$show" = "" ] || [ "$show" = "m" ]; then
+		echo "Changed but not updated:"
+		getSvnModFiles
+		if [ "$SVNFILES" != "" ]; then
+			if [ -f .svn/svnxstage ]; then
+		
+				getStagedFiles
+				while read -r line; do
+		
+					passed="0"
+					while read -r file; do
+						if [ "$line" = "$file" ]; then
+							passed="1"
+							continue
+						fi
+					done <<< "$STAGEFILES"
+		
+					if [ "$passed" = "0" ]; then
+						printSvnFile "$line"
+					fi
+		
+				done <<< "$SVNFILES"
+			else
+				while read -r line; do
+					printSvnFile "$line"
+				done <<< "$SVNFILES"
+			fi
+		fi
+		echo ""
+	fi
+
+	if [ "$show" = "" ] || [ "$show" = "u" ]; then
+		#New files
+		echo "Untracked files:"
+
+		getSvnNewFiles
+		while read -r line; do
+			printSvnFile "$line"
+		done <<< "$SVNFILES"
+		echo ""
+	fi
 }
 
 
