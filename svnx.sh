@@ -49,7 +49,7 @@ cmdDiff() {
 
 	checkRepo
 
-	if [ -f "$1" ]; then
+	if [[ -f "$1" || -d "$1" ]] ; then
 		svn diff --diff-cmd diff -x -uw "$1" | less
 		exit;
 	fi
