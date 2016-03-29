@@ -35,8 +35,7 @@ cmdCommit() {
 	checkRepo
 
 	getStagedFiles
-	
-	cat .svn/svnxstage | tr '\n' ' ' | xargs svn commit "$@"
+	cat .svn/svnxstage | sed '/^$/d' | tr '\n' '\0' | xargs -0 svn commit "$@"
 
 	if [ "$?" = "0" ]; then
 		rm .svn/svnxstage
