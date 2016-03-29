@@ -236,12 +236,7 @@ cmdStatus() {
 	if [ "$show" = "" ] || [ "$show" = "s" ]; then
 
 		echo "Changes to be committed:"
-		if [ -f  .svn/svnxstage ]; then
-			getStagedFiles
-			while read -r line; do
-				printSvnFile "$line"
-			done <<< "$STAGEFILES"
-		fi
+		printStagedFiles
 		echo ""
 	fi
 
@@ -249,43 +244,14 @@ cmdStatus() {
 	#Non staged changes
 	if [ "$show" = "" ] || [ "$show" = "m" ]; then
 		echo "Changed but not updated:"
-		getSvnModFiles
-		if [ "$SVNFILES" != "" ]; then
-			if [ -f .svn/svnxstage ]; then
-		
-				getStagedFiles
-				while read -r line; do
-		
-					passed="0"
-					while read -r file; do
-						if [ "$line" = "$file" ]; then
-							passed="1"
-							continue
-						fi
-					done <<< "$STAGEFILES"
-		
-					if [ "$passed" = "0" ]; then
-						printSvnFile "$line"
-					fi
-		
-				done <<< "$SVNFILES"
-			else
-				while read -r line; do
-					printSvnFile "$line"
-				done <<< "$SVNFILES"
-			fi
-		fi
+		printModFiles
 		echo ""
 	fi
 
 	if [ "$show" = "" ] || [ "$show" = "u" ]; then
 		#New files
 		echo "Untracked files:"
-
-		getSvnNewFiles
-		while read -r line; do
-			printSvnFile "$line"
-		done <<< "$SVNFILES"
+		printNewFiles
 		echo ""
 	fi
 }
@@ -355,6 +321,70 @@ printSvnFile() {
 		#Need to pipe through cat else get a broken pipe error
 		svn status --depth empty "$1" | cat | head -n 1
 	fi
+}
+
+printSvnFiles() {
+	if [ "$1" != "" ]; then
+		svn status --depth empty "$1" | cat
+	fi
+}
+
+printStagedFiles() {
+
+	if [ -f  .svn/svnxstage ]; then
+
+		cat .svn/svnxstage | grep -v '^\s*$' | sort | tr '\n' '\0' | xargs -0 svn status --depth empty
+
+		#getStagedFiles
+		#while read -r line; do
+		#	printSvnFile "$line"
+		#done <<< "$STAGEFILES"
+	fi
+}
+
+printModFiles() {
+
+	
+
+	getSvnModFiles
+	if [ "$SVNFILES" != "" ]; then
+		if [ -f .svn/svnxstage ]; then
+		
+			getStagedFiles
+			
+			UNSTAGED=`comm -23 <(echo "$SVNFILES") <(echo "$STAGEFILES")`
+			echo "$UNSTAGED" | sort | tr '\n' '\0' | xargs -0 svn status --depth empty
+
+#			while read -r line; do
+#		
+#				passed="0"
+#				while read -r file; do
+#					if [ "$line" = "$file" ]; then
+#						passed="1"
+#						continue
+#					fi
+#				done <<< "$STAGEFILES"
+#		
+#				if [ "$passed" = "0" ]; then
+#					printSvnFile "$line"
+#				fi
+#		
+#			done <<< "$SVNFILES"
+		else
+			cat "$SVNFILES" | sort | tr '\n' '\0' | xargs -0 svn status --depth empty
+			#while read -r line; do
+			#	printSvnFile "$line"
+			#done <<< "$SVNFILES"
+		fi
+	fi
+}
+
+printNewFiles() {
+	getSvnNewFiles
+	echo "$SVNFILES" | sort | tr '\n' '\0' | xargs -0 svn status --depth empty
+#	while read -r line; do
+#		printSvnFile "$line"
+#	done <<< "$SVNFILES"
 }
 
 
