@@ -187,6 +187,7 @@ cmdStage() {
 			if [ "$line" = "$1" ]; then
 				echo "File staged:"
 				echo "$line" >> .svn/svnxstage
+				sort -o .svn/svnxstage -u .svn/svnxstage
 				printSvnFile "$line"
 				exit;
 			fi
