@@ -372,7 +372,7 @@ printModFiles() {
 #		
 #			done <<< "$SVNFILES"
 		else
-			cat "$SVNFILES" | sort | tr '\n' '\0' | xargs -0 svn status --depth empty
+			echo "$SVNFILES" | sort | tr '\n' '\0' | xargs -0 svn status --depth empty
 			#while read -r line; do
 			#	printSvnFile "$line"
 			#done <<< "$SVNFILES"
